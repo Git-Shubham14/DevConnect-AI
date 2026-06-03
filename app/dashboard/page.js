@@ -1,9 +1,11 @@
 import Link from "next/link";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
 export default function Dashboard() {
   return (
-    <main id="app-dashboard-view">
-      <div className="app-container">
+    <ProtectedRoute>
+      <main id="app-dashboard-view">
+        <div className="app-container">
         <header className="navbar">
           <Link href="/" className="nav-brand" title="Back to Features Tour">
             <span>🧠 DevConnect AI</span>
@@ -415,5 +417,6 @@ export default async function FeedPage({ searchParams }) {
         </div>
       </div>
     </main>
+    </ProtectedRoute>
   );
 }

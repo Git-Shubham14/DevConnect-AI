@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "> Build. Collaborate. Grow. Powered by AI.",
   "main": "index.js",
- "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint"
-},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OmkarHase-11/DevConnect-AI.git"
@@ -22,8 +22,14 @@
   },
   "homepage": "https://github.com/OmkarHase-11/DevConnect-AI#readme",
   "dependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "autoprefixer": "^10.5.0",
+    "firebase": "^12.14.0",
+    "lucide-react": "^1.17.0",
     "next": "^16.2.7",
+    "postcss": "^8.5.15",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.0"
   }
 }
