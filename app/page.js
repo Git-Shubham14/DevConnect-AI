@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CodeReview from "../components/CodeReview.js";
 
 export default function Home() {
   return (
@@ -182,6 +183,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* AI Code Review Assistant Section */}
+      <CodeReview />
 
       <section className="section" id="workflow">
         <div className="section-title">
