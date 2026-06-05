@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 import CodeReview from "../components/CodeReview.js";
 
 export default function Home() {
@@ -8,23 +9,10 @@ export default function Home() {
       <div className="glow-blob glow-blob-2"></div>
       <div className="glow-blob glow-blob-3"></div>
 
-      <nav id="landing-nav">
-        <Link href="/" className="logo">
-          <div className="logo-icon">🧠</div>
-          <span>DevConnect AI</span>
-        </Link>
+      {/* ── Navbar ── */}
+      <Navbar variant="landing" />
 
-        <div className="nav-links" id="nav-menu">
-          <a href="#features">AI Showcase</a>
-          <a href="#workflow">How It Works</a>
-          <a href="#stats">Dashboard</a>
-          <a href="#waitlist">Waitlist</a>
-          <Link href="/dashboard" className="btn-nav-cta">
-            Open Community App
-          </Link>
-        </div>
-      </nav>
-
+      {/* ── Hero ── */}
       <header className="hero">
         <div className="badge">
           <span className="badge-dot"></span>
@@ -143,6 +131,7 @@ export default function Home() {
         </div>
       </header>
 
+      {/* ── AI Features Showcase ── */}
       <section className="section" id="features">
         <div className="section-title">
           <h2>
@@ -184,9 +173,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* AI Code Review Assistant Section */}
+      {/* ── AI Code Review Assistant Section ── */}
       <CodeReview />
 
+      {/* ── How It Works ── */}
       <section className="section" id="workflow">
         <div className="section-title">
           <h2>
@@ -234,6 +224,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Stats Dashboard ── */}
       <section className="section" id="stats">
         <div className="section-title">
           <h2>
@@ -267,6 +258,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Waitlist Section ── */}
       <section className="waitlist-section" id="waitlist">
         <h3>
           Join the <span>DevConnect Waitlist</span>
@@ -289,6 +281,7 @@ export default function Home() {
         </form>
       </section>
 
+      {/* ── CTA Section ── */}
       <section className="cta">
         <h2>Ready to Accelerate Your Journey?</h2>
         <p>
@@ -300,6 +293,7 @@ export default function Home() {
         </Link>
       </section>
 
+      {/* ── Footer ── */}
       <footer>
         <p>© 2026 DevConnect AI • Built for Modern Engineering Teams</p>
       </footer>
