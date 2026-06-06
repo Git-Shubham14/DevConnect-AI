@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Navbar from "../components/Navbar";
+import CodeReview from "../components/CodeReview";
 
 export default function Home() {
   return (
@@ -8,8 +8,23 @@ export default function Home() {
       <div className="glow-blob glow-blob-2"></div>
       <div className="glow-blob glow-blob-3"></div>
 
-      {/* ── Navbar ── */}
-      <Navbar variant="landing" />
+      {/* ── Navbar inline ── */}
+      <nav id="landing-nav">
+        <Link href="/" className="logo">
+          <div className="logo-icon">🧠</div>
+          <span>DevConnect AI</span>
+        </Link>
+
+        <div className="nav-links" id="nav-menu">
+          <a href="#features">AI Showcase</a>
+          <a href="#workflow">How It Works</a>
+          <a href="#stats">Dashboard</a>
+          <a href="#waitlist">Waitlist</a>
+          <Link href="/dashboard" className="btn-nav-cta">
+            Open Community App
+          </Link>
+        </div>
+      </nav>
 
       {/* ── Hero ── */}
       <header className="hero">
@@ -161,6 +176,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── AI Code Review Assistant ── */}
+      <CodeReview />
 
       {/* ── Workflow ── */}
       <section className="section" id="workflow">
