@@ -6,7 +6,8 @@ import {
   signInWithPopup, 
   signOut,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db, googleProvider, githubProvider } from "../lib/firebase";
@@ -90,6 +91,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error("Password reset error:", error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -100,7 +110,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loginWithGoogle, loginWithGithub, signupWithEmail, loginWithEmail, logout, loading }}>
+    <AuthContext.Provider value={{ user, loginWithGoogle, loginWithGithub, signupWithEmail, loginWithEmail, logout, resetPassword, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

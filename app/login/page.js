@@ -121,6 +121,11 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            <div className="flex justify-end" style={{ marginTop: "-0.5rem" }}>
+              <Link href="/forgot-password" className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <div>
