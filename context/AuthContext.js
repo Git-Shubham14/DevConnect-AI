@@ -7,7 +7,8 @@ import {
   signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  updateProfile
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db, googleProvider, githubProvider } from "../lib/firebase";
@@ -61,13 +62,22 @@ export const AuthProvider = ({ children }) => {
 
   const signupWithEmail = async (email, password, displayName) => {
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      // Optional: Add displayName immediately to the result.user if needed, but we save it to Firestore
-      const userToSave = { ...result.user, displayName: displayName || result.user.displayName };
-      await saveUserToFirestore(userToSave);
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      if (displayName?.trim()) {
+        await updateProfile(result.user, {
+          displayName: displayName.trim(),
+        });
+      }
+
+      await saveUserToFirestore(result.user);
+
       return result.user;
     } catch (error) {
-      console.error("Email signup error:", error);
       throw error;
     }
   };
@@ -75,6 +85,9 @@ export const AuthProvider = ({ children }) => {
   const loginWithEmail = async (email, password) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
+
+      await saveUserToFirestore(result.user);
+
       return result.user;
     } catch (error) {
       console.error("Email login error:", error);
