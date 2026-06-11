@@ -1,5 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
+import ScrollToTop from "../components/ScrollToTop";
 
 export const metadata = {
   title: "DevConnect AI",
@@ -12,6 +13,7 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           {children}
+          <ScrollToTop/>
         </AuthProvider>
       </body>
     </html>
