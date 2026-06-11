@@ -1,134 +1,599 @@
 import Link from "next/link";
 import CodeReview from "../components/CodeReview";
 
+// ── Design tokens (mirroring landing CSS variables) ───────────────────────────
+const C = {
+  bgDark: "#030712",
+  bgCard: "rgba(17,24,39,0.7)",
+  bgCardHover: "rgba(31,41,55,0.8)",
+  border: "rgba(255,255,255,0.08)",
+  borderGlow: "rgba(56,189,248,0.3)",
+  textPrimary: "#f8fafc",
+  textSecondary: "#cbd5e1",
+  textMuted: "#64748b",
+  blue: "#38bdf8",
+  teal: "#2dd4bf",
+  purple: "#c084fc",
+  green: "#34d399",
+  fontMono: "'JetBrains Mono', monospace",
+};
+
+const S = {
+  // page wrapper
+  main: {
+    backgroundColor: C.bgDark,
+    color: C.textSecondary,
+    fontFamily: "'Inter', system-ui, sans-serif",
+    overflowX: "hidden",
+    position: "relative",
+    WebkitFontSmoothing: "antialiased",
+    minHeight: "100vh",
+  },
+  // glow blobs
+  glowBlob: {
+    position: "absolute",
+    width: 400,
+    height: 400,
+    borderRadius: 9999,
+    pointerEvents: "none",
+    zIndex: -1,
+    opacity: 0.12,
+    filter: "blur(120px)",
+  },
+  // nav
+  nav: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    zIndex: 100,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 8%",
+    background: "rgba(3,7,18,0.75)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    borderBottom: `1px solid ${C.border}`,
+  },
+  logo: {
+    fontSize: "1.4rem",
+    fontWeight: 800,
+    color: C.textPrimary,
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    textDecoration: "none",
+  },
+  logoIcon: {
+    background: `linear-gradient(135deg, ${C.blue}, ${C.purple})`,
+    color: "#000",
+    width: 32,
+    height: 32,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "1.1rem",
+    fontWeight: 900,
+    borderRadius: 8,
+    boxShadow: "0 0 15px rgba(56,189,248,0.3)",
+  },
+  navLinks: {
+    display: "flex",
+    alignItems: "center",
+    gap: 32,
+  },
+  navLink: {
+    color: C.textSecondary,
+    textDecoration: "none",
+    fontWeight: 500,
+    fontSize: "0.95rem",
+    padding: "6px 0",
+  },
+  btnNavCta: {
+    display: "inline-block",
+    padding: "10px 20px",
+    background: `linear-gradient(135deg, ${C.blue}, ${C.purple})`,
+    color: "#000",
+    fontWeight: 600,
+    borderRadius: 8,
+    textDecoration: "none",
+    boxShadow: "0 4px 15px rgba(56,189,248,0.2)",
+  },
+  // hero
+  hero: {
+    minHeight: "95vh",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    textAlign: "center",
+    padding: "120px 8% 60px",
+    position: "relative",
+  },
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 16px",
+    background: "rgba(56,189,248,0.08)",
+    border: "1px solid rgba(56,189,248,0.2)",
+    borderRadius: 9999,
+    color: C.blue,
+    fontWeight: 600,
+    fontSize: "0.85rem",
+    marginBottom: 24,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  badgeDot: {
+    width: 8,
+    height: 8,
+    backgroundColor: C.blue,
+    borderRadius: 9999,
+  },
+  heroH1: {
+    fontSize: "4.2rem",
+    fontWeight: 800,
+    maxWidth: 950,
+    lineHeight: 1.15,
+    color: C.textPrimary,
+    marginBottom: 24,
+    letterSpacing: "-1px",
+    margin: "0 0 24px 0",
+  },
+  heroH1Span: {
+    background: `linear-gradient(90deg, ${C.blue}, ${C.teal} 45%, ${C.purple})`,
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+  },
+  heroP: {
+    fontSize: "1.2rem",
+    maxWidth: 760,
+    color: C.textSecondary,
+    lineHeight: 1.7,
+    margin: "0 0 40px 0",
+  },
+  heroCtas: {
+    display: "flex",
+    gap: 16,
+    marginBottom: 60,
+  },
+  btnPrimary: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 28px",
+    fontSize: "1rem",
+    fontWeight: 600,
+    borderRadius: 14,
+    textDecoration: "none",
+    cursor: "pointer",
+    background: `linear-gradient(135deg, ${C.blue}, ${C.teal})`,
+    color: "#030712",
+    boxShadow: "0 8px 25px rgba(56,189,248,0.25)",
+    border: "none",
+  },
+  btnSecondary: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 28px",
+    fontSize: "1rem",
+    fontWeight: 600,
+    borderRadius: 14,
+    textDecoration: "none",
+    cursor: "pointer",
+    background: "rgba(255,255,255,0.03)",
+    color: C.textPrimary,
+    border: `1px solid ${C.border}`,
+  },
+  // mockup
+  heroMockupWrapper: {
+    width: "100%",
+    maxWidth: 980,
+    background: "linear-gradient(135deg, rgba(56,189,248,0.1), rgba(192,132,252,0.1))",
+    padding: 12,
+    borderRadius: 24,
+    border: "1px solid rgba(255,255,255,0.05)",
+    boxShadow: "0 30px 60px rgba(0,0,0,0.6)",
+    marginTop: 10,
+  },
+  mockupWindow: {
+    width: "100%",
+    background: "#0f172a",
+    borderRadius: 18,
+    overflow: "hidden",
+    border: `1px solid ${C.border}`,
+    textAlign: "left",
+  },
+  mockupHeader: {
+    height: 44,
+    background: "#090d16",
+    display: "flex",
+    alignItems: "center",
+    padding: "0 16px",
+    borderBottom: `1px solid ${C.border}`,
+    justifyContent: "space-between",
+  },
+  mockupDots: { display: "flex", gap: 6 },
+  mockupDot: { width: 10, height: 10, borderRadius: 9999 },
+  mockupTitle: {
+    fontFamily: C.fontMono,
+    fontSize: "0.75rem",
+    color: C.textMuted,
+    background: "rgba(255,255,255,0.03)",
+    padding: "4px 20px",
+    borderRadius: 8,
+    border: `1px solid ${C.border}`,
+  },
+  mockupBody: {
+    display: "grid",
+    gridTemplateColumns: "200px 1fr",
+    height: 380,
+  },
+  mockupSidebar: {
+    background: "#090d16",
+    borderRight: `1px solid ${C.border}`,
+    padding: 16,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+  mockupSidebarItem: {
+    height: 36,
+    borderRadius: 8,
+    background: "rgba(255,255,255,0.03)",
+    border: `1px solid ${C.border}`,
+  },
+  mockupSidebarItemActive: {
+    height: 36,
+    borderRadius: 8,
+    background: "rgba(56,189,248,0.08)",
+    border: `1px solid rgba(56,189,248,0.2)`,
+  },
+  mockupMain: {
+    padding: 20,
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    overflowY: "auto",
+  },
+  mockupPost: { display: "flex", flexDirection: "column", gap: 12 },
+  mockupPostHeader: { display: "flex", alignItems: "center", gap: 10 },
+  mockupAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 9999,
+    background: `linear-gradient(135deg, ${C.blue}, ${C.purple})`,
+    flexShrink: 0,
+  },
+  mockupMeta: { flex: 1, display: "flex", flexDirection: "column", gap: 4 },
+  mockupLineSm: { height: 8, background: "rgba(255,255,255,0.08)", borderRadius: 2 },
+  mockupCodeCard: {
+    fontFamily: C.fontMono,
+    background: "#050b14",
+    border: `1px solid ${C.border}`,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: "0.8rem",
+    color: "#e2e8f0",
+  },
+  mockupAiCard: {
+    border: `1px solid ${C.purple}`,
+    background: "rgba(192,132,252,0.05)",
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 4,
+  },
+  mockupAiBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    background: "rgba(192,132,252,0.15)",
+    border: "1px solid rgba(192,132,252,0.3)",
+    padding: "2px 8px",
+    borderRadius: 8,
+    fontSize: "0.7rem",
+    color: C.purple,
+    fontWeight: 700,
+    marginBottom: 8,
+  },
+  // sections
+  section: { padding: "100px 8%", position: "relative" },
+  sectionTitle: { textAlign: "center", marginBottom: 64 },
+  sectionTitleH2: {
+    fontSize: "2.8rem",
+    fontWeight: 800,
+    color: C.textPrimary,
+    marginBottom: 16,
+    letterSpacing: "-0.5px",
+    margin: "0 0 16px 0",
+  },
+  sectionTitleSpan: {
+    background: `linear-gradient(90deg, ${C.blue}, ${C.purple})`,
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+  },
+  sectionTitleP: {
+    fontSize: "1.1rem",
+    color: C.textSecondary,
+    maxWidth: 600,
+    margin: "0 auto",
+  },
+  // features grid
+  featuresGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3,1fr)",
+    gap: 30,
+    marginBottom: 60,
+  },
+  featureCard: {
+    background: C.bgCard,
+    border: `1px solid ${C.border}`,
+    borderRadius: 14,
+    padding: 40,
+    backdropFilter: "blur(16px)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 20,
+    transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
+  },
+  featureIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 8,
+    background: "rgba(56,189,248,0.1)",
+    border: "1px solid rgba(56,189,248,0.2)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "1.5rem",
+  },
+  featureIconAi: {
+    width: 54,
+    height: 54,
+    borderRadius: 8,
+    background: "rgba(192,132,252,0.1)",
+    border: "1px solid rgba(192,132,252,0.2)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "1.5rem",
+  },
+  featureCardH3: { fontSize: "1.4rem", fontWeight: 700, color: C.textPrimary, margin: 0 },
+  featureCardP: { color: C.textSecondary, fontSize: "0.95rem", lineHeight: 1.6, margin: 0 },
+  // workflow
+  workflowContainer: {
+    maxWidth: 900,
+    margin: "0 auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 30,
+    position: "relative",
+    paddingLeft: 8,
+    borderLeft: `2px solid transparent`,
+  },
+  workflowStep: { display: "flex", gap: 32, position: "relative" },
+  workflowNum: (active, color) => ({
+    width: 82,
+    height: 82,
+    borderRadius: 9999,
+    background: C.bgDark,
+    border: `2px solid ${active ? color : C.border}`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "1.8rem",
+    fontWeight: 800,
+    color: active ? color : C.textMuted,
+    flexShrink: 0,
+    boxShadow: active ? `0 0 20px ${color}4d, 0 0 0 8px ${C.bgDark}` : `0 0 0 8px ${C.bgDark}`,
+  }),
+  workflowCard: {
+    background: C.bgCard,
+    border: `1px solid ${C.border}`,
+    padding: 30,
+    borderRadius: 14,
+    backdropFilter: "blur(16px)",
+    flexGrow: 1,
+  },
+  workflowCardH3: { fontSize: "1.3rem", fontWeight: 700, color: C.textPrimary, margin: "0 0 8px 0" },
+  workflowCardP: { color: C.textSecondary, fontSize: "0.95rem", margin: 0 },
+  // stats
+  statsDashboard: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4,1fr)",
+    gap: 24,
+    marginBottom: 50,
+  },
+  statMetricCard: (i) => ({
+    background: C.bgCard,
+    border: `1px solid ${C.border}`,
+    padding: "32px 24px",
+    borderRadius: 14,
+    textAlign: "center",
+    backdropFilter: "blur(16px)",
+    position: "relative",
+    overflow: "hidden",
+    borderTop: `3px solid ${i % 2 === 0 ? C.blue : C.purple}`,
+  }),
+  statMetricVal: {
+    fontSize: "2.8rem",
+    fontWeight: 800,
+    color: C.textPrimary,
+    lineHeight: 1,
+    marginBottom: 12,
+    letterSpacing: "-1px",
+  },
+  statMetricLabel: {
+    fontSize: "0.85rem",
+    color: C.textMuted,
+    textTransform: "uppercase",
+    fontWeight: 700,
+    letterSpacing: "1px",
+  },
+  // waitlist
+  waitlistSection: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 20,
+    background: "rgba(17,24,39,0.4)",
+    border: `1px solid ${C.border}`,
+    padding: "50px 30px",
+    borderRadius: 24,
+    maxWidth: 760,
+    margin: "60px auto 20px",
+    backdropFilter: "blur(16px)",
+    textAlign: "center",
+  },
+  waitlistH3: { fontSize: "1.8rem", color: C.textPrimary, fontWeight: 800, margin: 0 },
+  waitlistH3Span: {
+    background: `linear-gradient(90deg, ${C.blue}, ${C.purple})`,
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+  },
+  waitlistP: { fontSize: "1rem", color: C.textSecondary, maxWidth: 500, margin: 0 },
+  waitlistForm: { display: "flex", width: "100%", maxWidth: 540, gap: 12, marginTop: 10 },
+  waitlistInput: {
+    flexGrow: 1,
+    padding: "14px 20px",
+    background: "rgba(0,0,0,0.3)",
+    border: `1px solid ${C.border}`,
+    borderRadius: 14,
+    color: C.textPrimary,
+    outline: "none",
+    fontSize: "0.95rem",
+    fontFamily: "inherit",
+  },
+  // cta
+  cta: {
+    textAlign: "center",
+    padding: "120px 8%",
+    background: "radial-gradient(circle at center, rgba(56,189,248,0.08) 0%, transparent 60%)",
+  },
+  ctaH2: {
+    fontSize: "3rem",
+    fontWeight: 800,
+    color: C.textPrimary,
+    marginBottom: 16,
+    letterSpacing: "-1px",
+    margin: "0 0 16px 0",
+  },
+  ctaP: { fontSize: "1.1rem", color: C.textSecondary, maxWidth: 600, margin: "0 auto 32px" },
+  // footer
+  footer: {
+    textAlign: "center",
+    padding: "40px 8%",
+    color: C.textMuted,
+    fontSize: "0.9rem",
+    borderTop: `1px solid ${C.border}`,
+    background: "#02050d",
+  },
+};
+
 export default function Home() {
   return (
-    <main id="landing-page-view">
-      <div className="glow-blob glow-blob-1"></div>
-      <div className="glow-blob glow-blob-2"></div>
-      <div className="glow-blob glow-blob-3"></div>
+    <main style={S.main}>
+      {/* Glow blobs */}
+      <div style={{ ...S.glowBlob, top: -100, left: -100, background: `radial-gradient(circle, ${C.blue} 0%, transparent 80%)` }} />
+      <div style={{ ...S.glowBlob, top: "40%", right: -150, background: `radial-gradient(circle, ${C.purple} 0%, transparent 80%)` }} />
+      <div style={{ ...S.glowBlob, bottom: "10%", left: -100, background: `radial-gradient(circle, ${C.teal} 0%, transparent 80%)` }} />
 
-      {/* ── Navbar inline ── */}
-      <nav id="landing-nav">
-        <Link href="/" className="logo">
-          <div className="logo-icon">🧠</div>
+      {/* ── Navbar ── */}
+      <nav style={S.nav}>
+        <Link href="/" style={S.logo}>
+          <div style={S.logoIcon}>🧠</div>
           <span>DevConnect AI</span>
         </Link>
-
-        <div className="nav-links" id="nav-menu">
-          <a href="#features">AI Showcase</a>
-          <a href="#workflow">How It Works</a>
-          <a href="#stats">Dashboard</a>
-          <a href="#waitlist">Waitlist</a>
-          <Link href="/dashboard" className="btn-nav-cta">
-            Open Community App
-          </Link>
+        <div style={S.navLinks}>
+          <a href="#features" style={S.navLink}>AI Showcase</a>
+          <a href="#workflow" style={S.navLink}>How It Works</a>
+          <a href="#stats" style={S.navLink}>Dashboard</a>
+          <a href="#waitlist" style={S.navLink}>Waitlist</a>
+          <Link href="/dashboard" style={S.btnNavCta}>Open Community App</Link>
         </div>
       </nav>
 
       {/* ── Hero ── */}
-      <header className="hero">
-        <div className="badge">
-          <span className="badge-dot"></span>
+      <header style={S.hero}>
+        <div style={S.badge}>
+          <span style={S.badgeDot} />
           🚀 AI-Powered Developer Community
         </div>
 
-        <h1>
+        <h1 style={S.heroH1}>
           Building the Future of <br />
-          <span>Developer Collaboration</span>
+          <span style={S.heroH1Span}>Developer Collaboration</span>
         </h1>
 
-        <p>
-          DevConnect AI is a next-generation social ecosystem where engineers
-          share knowledge, collaborate on repositories, and leverage contextual
-          AI agents to debug errors, review pull requests, and deploy code
-          faster.
+        <p style={S.heroP}>
+          DevConnect AI is a next-generation social ecosystem where engineers share knowledge,
+          collaborate on repositories, and leverage contextual AI agents to debug errors,
+          review pull requests, and deploy code faster.
         </p>
 
-        <div className="hero-ctas">
-          <Link href="/dashboard" className="btn btn-primary">
+        <div style={S.heroCtas}>
+          <Link href="/dashboard" style={S.btnPrimary}>
             <span>Launch Community Feed</span>
           </Link>
-
-          <a href="#features" className="btn btn-secondary">
-            Explore AI Showcase
-          </a>
+          <a href="#features" style={S.btnSecondary}>Explore AI Showcase</a>
         </div>
 
-        <div className="hero-mockup-wrapper">
-          <div className="mockup-window">
-            <div className="mockup-header">
-              <div className="mockup-dots">
-                <span className="mockup-dot dot-red"></span>
-                <span className="mockup-dot dot-yellow"></span>
-                <span className="mockup-dot dot-green"></span>
+        {/* Hero mockup */}
+        <div style={S.heroMockupWrapper}>
+          <div style={S.mockupWindow}>
+            <div style={S.mockupHeader}>
+              <div style={S.mockupDots}>
+                <span style={{ ...S.mockupDot, background: "#ef4444" }} />
+                <span style={{ ...S.mockupDot, background: "#f59e0b" }} />
+                <span style={{ ...S.mockupDot, background: "#10b981" }} />
               </div>
-              <div className="mockup-title">feed_app_controller.tsx</div>
-              <div style={{ width: "32px" }}></div>
+              <div style={S.mockupTitle}>feed_app_controller.tsx</div>
+              <div style={{ width: 32 }} />
             </div>
 
-            <div className="mockup-body">
-              <aside className="mockup-sidebar">
-                <div className="mockup-sidebar-item active"></div>
-                <div className="mockup-sidebar-item"></div>
-                <div className="mockup-sidebar-item"></div>
-                <div
-                  className="mockup-sidebar-item"
-                  style={{
-                    marginTop: "auto",
-                    height: "32px",
-                    borderRadius: "50%",
-                    width: "32px",
-                    background: "rgba(255,255,255,0.05)",
-                  }}
-                ></div>
+            <div style={S.mockupBody}>
+              <aside style={S.mockupSidebar}>
+                <div style={S.mockupSidebarItemActive} />
+                <div style={S.mockupSidebarItem} />
+                <div style={S.mockupSidebarItem} />
+                <div style={{ marginTop: "auto", height: 32, borderRadius: "50%", width: 32, background: "rgba(255,255,255,0.05)" }} />
               </aside>
 
-              <section className="mockup-main">
-                <div className="mockup-post">
-                  <div className="mockup-post-header">
-                    <div className="mockup-avatar"></div>
-                    <div className="mockup-meta">
-                      <div className="mockup-line-sm" style={{ width: "120px" }}></div>
-                      <div className="mockup-line-sm" style={{ width: "70px", opacity: "0.5" }}></div>
+              <section style={S.mockupMain}>
+                <div style={S.mockupPost}>
+                  <div style={S.mockupPostHeader}>
+                    <div style={S.mockupAvatar} />
+                    <div style={S.mockupMeta}>
+                      <div style={{ ...S.mockupLineSm, width: 120 }} />
+                      <div style={{ ...S.mockupLineSm, width: 70, opacity: 0.5 }} />
                     </div>
                   </div>
 
-                  <div className="mockup-code-card">
-                    <span className="syn-comment">
-                      // App Router re-renders infinitely on state push
+                  <div style={S.mockupCodeCard}>
+                    <span style={{ color: C.textMuted, fontStyle: "italic" }}>
+                      {"// App Router re-renders infinitely on state push"}
                     </span>
                     <br />
-                    <span className="syn-keyword">const</span> handleFilter =
-                    (filter) =&gt; {"{"}
+                    <span style={{ color: "#f43f5e" }}>const</span>
+                    {" handleFilter = (filter) => {"}
                     <br />
-                    &nbsp;&nbsp;router.
-                    <span className="mockup-code-highlight">push</span>(
-                    <span className="syn-string">`?tab=${"{filter}"}`</span>);
+                    &nbsp;&nbsp;{"router."}
+                    <span style={{ color: C.purple, borderBottom: `2px dashed ${C.purple}`, paddingBottom: 1 }}>push</span>
+                    {"(`?tab=${filter}`);"}
                     <br />
                     {"}"}
                   </div>
 
-                  <div className="mockup-ai-card">
-                    <div className="mockup-ai-badge">🤖 DevConnect Copilot</div>
-                    <div
-                      className="mockup-line-sm"
-                      style={{
-                        width: "90%",
-                        background: "var(--accent-purple)",
-                        height: "6px",
-                        marginBottom: "6px",
-                      }}
-                    ></div>
-                    <div
-                      className="mockup-line-sm"
-                      style={{
-                        width: "75%",
-                        background: "var(--accent-purple)",
-                        height: "6px",
-                        opacity: "0.7",
-                      }}
-                    ></div>
+                  <div style={S.mockupAiCard}>
+                    <div style={S.mockupAiBadge}>🤖 DevConnect Copilot</div>
+                    <div style={{ ...S.mockupLineSm, width: "90%", background: C.purple, height: 6, marginBottom: 6 }} />
+                    <div style={{ ...S.mockupLineSm, width: "75%", background: C.purple, height: 6, opacity: 0.7 }} />
                   </div>
                 </div>
               </section>
@@ -138,156 +603,117 @@ export default function Home() {
       </header>
 
       {/* ── Features ── */}
-      <section className="section" id="features">
-        <div className="section-title">
-          <h2>AI Features <span>Showcase</span></h2>
-          <p>
-            DevConnect features custom LLM orchestration running locally in your
-            workspace to automate tedious code tasks.
+      <section style={S.section} id="features">
+        <div style={S.sectionTitle}>
+          <h2 style={S.sectionTitleH2}>
+            AI Features <span style={S.sectionTitleSpan}>Showcase</span>
+          </h2>
+          <p style={S.sectionTitleP}>
+            DevConnect features custom LLM orchestration running locally in your workspace
+            to automate tedious code tasks.
           </p>
         </div>
 
-        <div className="features-grid">
-          <div className="feature-card feature-card-ai">
-            <div className="feature-icon">🤖</div>
-            <h3>Auto Code Reviewer</h3>
-            <p>
-              Scans snippets posted in conversations, verifying memory safety,
-              performance leaks, and logic regressions automatically.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">⚡</div>
-            <h3>Intelligent Composer</h3>
-            <p>
-              Helps with formatting code blocks, picking hashtags, and polishing
-              technical explanations.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">🔍</div>
-            <h3>Smart Query Classifier</h3>
-            <p>
-              Categorizes discussions and routes questions to relevant topic
-              maintainers and collaborators.
-            </p>
-          </div>
+        <div style={S.featuresGrid}>
+          {[
+            { icon: "🤖", title: "Auto Code Reviewer", desc: "Scans snippets posted in conversations, verifying memory safety, performance leaks, and logic regressions automatically.", ai: true },
+            { icon: "⚡", title: "Intelligent Composer", desc: "Helps with formatting code blocks, picking hashtags, and polishing technical explanations." },
+            { icon: "🔍", title: "Smart Query Classifier", desc: "Categorizes discussions and routes questions to relevant topic maintainers and collaborators." },
+          ].map(({ icon, title, desc, ai }) => (
+            <div key={title} style={S.featureCard}>
+              <div style={ai ? S.featureIconAi : S.featureIcon}>{icon}</div>
+              <h3 style={S.featureCardH3}>{title}</h3>
+              <p style={S.featureCardP}>{desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── AI Code Review Assistant ── */}
+      {/* ── AI Code Review Component ── */}
       <CodeReview />
 
       {/* ── Workflow ── */}
-      <section className="section" id="workflow">
-        <div className="section-title">
-          <h2>How <span>DevConnect</span> Works</h2>
-          <p>
-            A step-by-step tour of building projects on our interactive
-            collaboration timeline.
+      <section style={S.section} id="workflow">
+        <div style={S.sectionTitle}>
+          <h2 style={S.sectionTitleH2}>
+            How <span style={S.sectionTitleSpan}>DevConnect</span> Works
+          </h2>
+          <p style={S.sectionTitleP}>
+            A step-by-step tour of building projects on our interactive collaboration timeline.
           </p>
         </div>
 
-        <div className="workflow-container">
-          <div className="workflow-step active">
-            <div className="workflow-num">01</div>
-            <div className="workflow-card">
-              <h3>Compose Your Discussion</h3>
-              <p>
-                Draft coding questions, share logs, or start a repository
-                collaboration using markdown, tags, and code blocks.
-              </p>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", gap: 30 }}>
+          {[
+            { num: "01", color: C.blue, title: "Compose Your Discussion", desc: "Draft coding questions, share logs, or start a repository collaboration using markdown, tags, and code blocks.", active: true },
+            { num: "02", color: C.purple, title: "AI Copilot Evaluates", desc: "DevConnect AI suggests corrections, hashtags, and code-review improvements before you post." },
+            { num: "03", color: C.teal, title: "Community Code Verification", desc: "Get responses from developers, resolve comments, and improve your projects faster." },
+          ].map(({ num, color, title, desc, active }) => (
+            <div key={num} style={S.workflowStep}>
+              <div style={S.workflowNum(active, color)}>{num}</div>
+              <div style={S.workflowCard}>
+                <h3 style={S.workflowCardH3}>{title}</h3>
+                <p style={S.workflowCardP}>{desc}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="workflow-step">
-            <div className="workflow-num">02</div>
-            <div className="workflow-card">
-              <h3>AI Copilot Evaluates</h3>
-              <p>
-                DevConnect AI suggests corrections, hashtags, and code-review
-                improvements before you post.
-              </p>
-            </div>
-          </div>
-
-          <div className="workflow-step">
-            <div className="workflow-num">03</div>
-            <div className="workflow-card">
-              <h3>Community Code Verification</h3>
-              <p>
-                Get responses from developers, resolve comments, and improve
-                your projects faster.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
       {/* ── Stats ── */}
-      <section className="section" id="stats">
-        <div className="section-title">
-          <h2>Community <span>Statistics</span> Dashboard</h2>
-          <p>Review dashboard data tracking community health and AI performance.</p>
+      <section style={S.section} id="stats">
+        <div style={S.sectionTitle}>
+          <h2 style={S.sectionTitleH2}>
+            Community <span style={S.sectionTitleSpan}>Statistics</span> Dashboard
+          </h2>
+          <p style={S.sectionTitleP}>Review dashboard data tracking community health and AI performance.</p>
         </div>
 
-        <div className="stats-dashboard">
-          <div className="stat-metric-card">
-            <div className="stat-metric-val">10,482</div>
-            <div className="stat-metric-label">Active Engineers</div>
-          </div>
-          <div className="stat-metric-card">
-            <div className="stat-metric-val">52,192</div>
-            <div className="stat-metric-label">AI Code Reviews</div>
-          </div>
-          <div className="stat-metric-card">
-            <div className="stat-metric-val">4.2s</div>
-            <div className="stat-metric-label">Avg Review Latency</div>
-          </div>
-          <div className="stat-metric-card">
-            <div className="stat-metric-val">99.8%</div>
-            <div className="stat-metric-label">System Uptime</div>
-          </div>
+        <div style={S.statsDashboard}>
+          {[
+            { val: "10,482", label: "Active Engineers" },
+            { val: "52,192", label: "AI Code Reviews" },
+            { val: "4.2s", label: "Avg Review Latency" },
+            { val: "99.8%", label: "System Uptime" },
+          ].map(({ val, label }, i) => (
+            <div key={label} style={S.statMetricCard(i)}>
+              <div style={S.statMetricVal}>{val}</div>
+              <div style={S.statMetricLabel}>{label}</div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ── Waitlist ── */}
-      <section className="waitlist-section" id="waitlist">
-        <h3>Join the <span>DevConnect Waitlist</span></h3>
-        <p>
-          Be the first to know when registration opens for public access and
-          early beta features.
+      <section style={S.waitlistSection} id="waitlist">
+        <h3 style={S.waitlistH3}>
+          Join the <span style={S.waitlistH3Span}>DevConnect Waitlist</span>
+        </h3>
+        <p style={S.waitlistP}>
+          Be the first to know when registration opens for public access and early beta features.
         </p>
-        <form className="waitlist-form">
+        <div style={S.waitlistForm}>
           <input
             type="email"
-            className="waitlist-input"
+            style={S.waitlistInput}
             placeholder="Enter your developer email..."
-            required
           />
-          <button type="submit" className="btn btn-primary">
-            Get Early Access
-          </button>
-        </form>
+          <button style={S.btnPrimary}>Get Early Access</button>
+        </div>
       </section>
 
       {/* ── CTA ── */}
-      <section className="cta">
-        <h2>Ready to Accelerate Your Journey?</h2>
-        <p>
-          Join the next generation of developer workspaces powered by local code
-          reviews.
+      <section style={S.cta}>
+        <h2 style={S.ctaH2}>Ready to Accelerate Your Journey?</h2>
+        <p style={S.ctaP}>
+          Join the next generation of developer workspaces powered by local code reviews.
         </p>
-        <Link href="/dashboard" className="btn btn-primary">
-          Launch Community Feed
-        </Link>
+        <Link href="/dashboard" style={S.btnPrimary}>Launch Community Feed</Link>
       </section>
 
       {/* ── Footer ── */}
-      <footer>
-        <p>© 2026 DevConnect AI • Built for Modern Engineering Teams</p>
+      <footer style={S.footer}>
+        <p style={{ margin: 0 }}>© 2026 DevConnect AI • Built for Modern Engineering Teams</p>
       </footer>
     </main>
   );
