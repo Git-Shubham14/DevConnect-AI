@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import CodeEditorModal from "../../components/CodeEditorModal";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebase";
 import {
@@ -439,6 +440,13 @@ export default function Dashboard() {
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState("");
   const [posting, setPosting] = useState(false);
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+
+  const handleInsertCode = (markdownBlock) => {
+    setContent((prev) =>
+      prev ? prev + "\n" + markdownBlock : markdownBlock
+    );
+  };
 
   useEffect(() => {
     const postsQuery = query(collection(db, "posts"), orderBy("timestamp", "desc"));
@@ -549,7 +557,14 @@ export default function Dashboard() {
                 <div style={S.composerActions}>
                   <div style={S.composerTools}>
                     <button style={S.composerToolBtn} title="Add Image">🖼️</button>
-                    <button style={S.composerToolBtn} title="Insert Code">{"</>"}</button>
+                    <button
+                      id="open-code-editor-btn"
+                      style={S.composerToolBtn}
+                      title="Insert Code Block"
+                      onClick={() => setShowCodeEditor(true)}
+                    >
+                      {"</>"}
+                    </button>
                   </div>
 
                   <label style={S.aiHelperToggle}>
@@ -708,6 +723,13 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      {/*Code Editor Modal*/}
+      <CodeEditorModal
+        isOpen={showCodeEditor}
+        onClose={() => setShowCodeEditor(false)}
+        onInsert={handleInsertCode}
+      />
     </ProtectedRoute>
   );
 }
