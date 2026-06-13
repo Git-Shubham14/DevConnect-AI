@@ -528,6 +528,7 @@ export default function Dashboard() {
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
   // Track which comment is being edited: { postId, createdAt }
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [editingComment, setEditingComment] = useState(null);
   const [editingCommentDraft, setEditingCommentDraft] = useState("");
 
@@ -575,6 +576,11 @@ export default function Dashboard() {
       setPosting(false);
     }
   };
+
+  const handleInsertCode = (codeBlock) => {
+  setContent((prev) => prev + (prev ? "\n\n" : "") + codeBlock);
+  setShowCodeEditor(false);
+};
 
   const toggleTag = (tag) => {
     setSelectedTags((prev) =>
