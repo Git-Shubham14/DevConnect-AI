@@ -5,6 +5,7 @@ import Navbar from "../../components/Navbar";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import CodeEditorModal from "../../components/CodeEditorModal";
 import { useAuth } from "../../context/AuthContext";
+import { useResponsive } from "../../hooks/useResponsive";
 import { db } from "../../lib/firebase";
 import {
   collection,
@@ -27,16 +28,7 @@ const S = {
     minHeight: "100vh",
     backgroundColor: "var(--bg-primary)",
   },
-  mainLayout: {
-    display: "grid",
-    gridTemplateColumns: "240px 1fr 340px",
-    gap: 24,
-    maxWidth: 1440,
-    width: "100%",
-    margin: "0 auto",
-    padding: 24,
-    flex: 1,
-  },
+  // mainLayout is now computed dynamically based on breakpoint (see render)
   leftSidebar: {
     position: "sticky",
     top: 88,
@@ -518,6 +510,7 @@ const S = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { isMobile, isTablet } = useResponsive();
   const [content, setContent] = useState("");
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState("");
@@ -706,14 +699,43 @@ export default function Dashboard() {
     }
   };
 
+  // Responsive main layout
+  const mainLayout = {
+    display: "grid",
+    gridTemplateColumns: isMobile
+      ? "1fr"
+      : isTablet
+      ? "1fr"
+      : "240px 1fr 340px",
+    gap: isMobile ? 16 : 24,
+    maxWidth: 1440,
+    width: "100%",
+    margin: "0 auto",
+    padding: isMobile ? "16px 12px" : isTablet ? "16px 16px" : "24px",
+    flex: 1,
+    boxSizing: "border-box",
+    // Leave room for mobile bottom nav
+    paddingBottom: isMobile ? "80px" : isTablet ? "80px" : "24px",
+  };
+
+  // Mobile bottom nav items
+  const mobileNavItems = [
+    { icon: "▦", label: "Feed", active: true },
+    { icon: "📈", label: "Trending" },
+    { icon: "❔", label: "Q&A" },
+    { icon: "👥", label: "Collab" },
+    { icon: "🔖", label: "Saved" },
+  ];
+
   return (
     <ProtectedRoute>
       <main style={{ backgroundColor: "var(--bg-primary)", minHeight: "100vh" }}>
         <div style={S.appContainer}>
           <Navbar variant="dashboard" />
 
-          <div style={S.mainLayout}>
-            {/* ── Left Sidebar ─────────────────────────────────────────── */}
+          <div style={mainLayout}>
+            {/* ── Left Sidebar — hidden on mobile/tablet ────────────────── */}
+            {!isMobile && !isTablet && (
             <aside style={S.leftSidebar}>
               <ul style={S.sidebarNavList}>
                 {[
@@ -747,6 +769,7 @@ export default function Dashboard() {
                 </a>
               </div>
             </aside>
+            )}
 
             {/* ── Feed Column ──────────────────────────────────────────── */}
             <section style={S.feedColumn}>
@@ -1027,7 +1050,8 @@ export default function Dashboard() {
               </div>
             </section>
 
-            {/* ── Right Sidebar ─────────────────────────────────────────── */}
+            {/* ── Right Sidebar — hidden on mobile/tablet ─────────────── */}
+            {!isMobile && !isTablet && (
             <aside style={S.rightSidebar}>
               <div style={S.aiPromoWidget}>
                 <h3 style={S.widgetTitleAi}>
@@ -1092,8 +1116,36 @@ export default function Dashboard() {
                 </div>
               </div>
             </aside>
+            )}
           </div>
         </div>
+
+        {/* ── Mobile Bottom Navigation Bar ────────────────────────────── */}
+        <nav className="mobile-bottom-nav" style={{ justifyContent: "space-around", alignItems: "center" }}>
+          {mobileNavItems.map(({ icon, label, active }) => (
+            <button
+              key={label}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 3,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: "6px 10px",
+                color: active ? "var(--accent-primary)" : "var(--text-muted)",
+                fontSize: "0.65rem",
+                fontWeight: active ? 700 : 500,
+                fontFamily: "inherit",
+                minWidth: 48,
+              }}
+            >
+              <span style={{ fontSize: "1.3rem", lineHeight: 1 }}>{icon}</span>
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
       </main>
 
       {/*Code Editor Modal*/}
