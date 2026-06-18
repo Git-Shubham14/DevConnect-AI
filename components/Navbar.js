@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { db } from "../lib/firebase";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 
 const S = {
   // ── Landing navbar ──────────────────────────────────────────────────────────
@@ -205,7 +207,7 @@ const S = {
   },
   navSearchInput: {
     width: "100%",
-    padding: "8px 16px 8px 40px",
+    padding: "8px 36px 8px 40px",
     backgroundColor: "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
     borderRadius: "var(--radius-full)",
@@ -214,6 +216,7 @@ const S = {
     fontSize: "0.9rem",
     transition: "all var(--transition-fast)",
     boxSizing: "border-box",
+    fontFamily: "inherit",
   },
   navSearchIcon: {
     position: "absolute",
@@ -222,12 +225,119 @@ const S = {
     transform: "translateY(-50%)",
     color: "var(--text-muted)",
     pointerEvents: "none",
+    fontSize: "0.9rem",
+  },
+  navSearchClear: {
+    position: "absolute",
+    right: 8,
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "transparent",
+    border: "none",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    fontSize: "0.85rem",
+    padding: 6,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "50%",
+  },
+  searchDropdown: {
+    position: "absolute",
+    top: "calc(100% + 8px)",
+    left: 0,
+    width: "100%",
+    minWidth: 320,
+    backgroundColor: "var(--bg-secondary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: "var(--radius-lg)",
+    boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+    zIndex: 60,
+    overflow: "hidden",
+    maxHeight: 420,
+    overflowY: "auto",
+  },
+  searchResultItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: "12px 16px",
+    cursor: "pointer",
+    borderBottom: "1px solid rgba(255,255,255,0.05)",
+    textDecoration: "none",
+    color: "inherit",
+  },
+  searchResultItemActive: {
+    backgroundColor: "var(--accent-primary-alpha)",
+  },
+  searchResultTitle: {
+    fontSize: "0.88rem",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  searchResultMeta: {
+    fontSize: "0.74rem",
+    color: "var(--text-muted)",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  searchResultTagPill: {
+    color: "var(--accent-primary)",
+    fontWeight: 500,
+  },
+  searchStateRow: {
+    padding: "16px",
+    fontSize: "0.85rem",
+    color: "var(--text-muted)",
+    textAlign: "center",
+  },
+  searchFooterRow: {
+    padding: "10px 16px",
+    fontSize: "0.78rem",
+    color: "var(--text-muted)",
+    borderTop: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-primary)",
+  },
+  // Mobile search
+  mobileSearchBar: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    width: "100%",
+    padding: "10px 12px",
+    backgroundColor: "var(--bg-secondary)",
+    borderBottom: "1px solid var(--border-color)",
+    boxShadow: "0 10px 24px rgba(0,0,0,0.35)",
+    zIndex: 59,
+    boxSizing: "border-box",
+  },
+  mobileSearchInputWrap: {
+    position: "relative",
+    width: "100%",
+  },
+  mobileSearchInput: {
+    width: "100%",
+    padding: "9px 36px 9px 36px",
+    backgroundColor: "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: "var(--radius-full)",
+    color: "var(--text-primary)",
+    outline: "none",
+    fontSize: "0.88rem",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
   },
   navActions: {
     display: "flex",
     alignItems: "center",
     gap: 10,
     flexShrink: 0,
+    position: "relative",
   },
   btnIcon: {
     display: "flex",
@@ -239,6 +349,21 @@ const S = {
     border: "1.5px solid var(--border-color)",
     borderRadius: "var(--radius-md)",
     color: "var(--text-secondary)",
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+    fontSize: "1rem",
+    flexShrink: 0,
+  },
+  btnIconActive: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 40,
+    height: 40,
+    background: "var(--accent-primary-alpha)",
+    border: "1.5px solid var(--accent-primary)",
+    borderRadius: "var(--radius-md)",
+    color: "var(--accent-primary)",
     cursor: "pointer",
     transition: "all var(--transition-fast)",
     fontSize: "1rem",
@@ -267,12 +392,113 @@ const S = {
   },
 };
 
+function highlightMatch(text, query) {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark style={{ background: "var(--accent-primary-alpha)", color: "var(--accent-primary)", borderRadius: 2 }}>
+        {text.slice(idx, idx + query.length)}
+      </mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+// ── Shared search logic ──────────────────────────────────────────────────────
+// Pulls the latest posts once per mount and filters them client-side as the
+// user types. This keeps things snappy (no per-keystroke Firestore reads)
+// while still searching real post content, tags, and author names.
+function useSearch() {
+  const [allPosts, setAllPosts] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const postsQuery = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(200));
+        const snap = await getDocs(postsQuery);
+        if (cancelled) return;
+        setAllPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setLoaded(true);
+      } catch (err) {
+        console.error("Search index load failed:", err);
+        if (!cancelled) {
+          setLoadError(true);
+          setLoaded(true);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const search = useCallback((rawTerm) => {
+    const term = rawTerm.trim().toLowerCase();
+    if (!term) return [];
+    return allPosts
+      .filter((post) => {
+        const inContent = post.content?.toLowerCase().includes(term);
+        const inTags = (post.tags || []).some((t) => t.toLowerCase().includes(term));
+        const inAuthor = post.displayName?.toLowerCase().includes(term);
+        return inContent || inTags || inAuthor;
+      })
+      .slice(0, 8);
+  }, [allPosts]);
+
+  return { search, loaded, loadError };
+}
+
+function SearchResultRow({ post, term, activeIndex, index, onSelect }) {
+  const snippetSource = post.content || "";
+  const lowerSnippet = snippetSource.toLowerCase();
+  const lowerTerm = term.toLowerCase();
+  const matchIdx = lowerSnippet.indexOf(lowerTerm);
+  let snippet = snippetSource;
+  if (matchIdx > 40) {
+    snippet = "…" + snippetSource.slice(Math.max(0, matchIdx - 30));
+  }
+  if (snippet.length > 110) snippet = snippet.slice(0, 110) + "…";
+
+  return (
+    <div
+      role="option"
+      aria-selected={activeIndex === index}
+      style={{ ...S.searchResultItem, ...(activeIndex === index ? S.searchResultItemActive : {}) }}
+      onMouseDown={(e) => { e.preventDefault(); onSelect(post); }}
+    >
+      <div style={S.searchResultTitle}>{highlightMatch(snippet || "(no content)", term)}</div>
+      <div style={S.searchResultMeta}>
+        <span>{post.displayName || "Anonymous User"}</span>
+        {(post.tags || []).slice(0, 2).map((t) => (
+          <span key={t} style={S.searchResultTagPill}>{t}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Navbar({ variant = "landing" }) {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // ── Search state (shared shape for desktop + mobile) ──────────────────────
+  const { search, loaded, loadError } = useSearch();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  const desktopInputRef = useRef(null);
+  const mobileInputRef = useRef(null);
+  const searchWrapRef = useRef(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -286,6 +512,70 @@ export default function Navbar({ variant = "landing" }) {
     setMobileOpen(false);
   }, []);
 
+  // Re-run the filter whenever the term changes
+  useEffect(() => {
+    setResults(search(searchTerm));
+    setActiveIndex(-1);
+  }, [searchTerm, search]);
+
+  // Close the dropdown / mobile bar when clicking outside it
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
+        setSearchFocused(false);
+        setMobileSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+const goToPost = useCallback((post) => {
+  setSearchFocused(false);
+  setMobileSearchOpen(false);
+  setSearchTerm("");
+
+  const targetHash = `#post-${post.id}`;
+  const isOnDashboard = window.location.pathname === "/dashboard";
+
+  if (isOnDashboard) {
+    // Already on dashboard — directly set the hash so the dashboard
+    // scroll effect picks it up, then fire a custom event to wake it.
+    window.location.hash = targetHash;
+    window.dispatchEvent(new Event("dashboard-scroll-request"));
+  } else {
+    router.push(`/dashboard${targetHash}`);
+  }
+}, [router]);
+
+  const handleSearchKeyDown = (e) => {
+    if (!results.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const chosen = results[activeIndex] ?? results[0];
+      if (chosen) goToPost(chosen);
+    } else if (e.key === "Escape") {
+      setSearchFocused(false);
+      setMobileSearchOpen(false);
+      e.currentTarget.blur();
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+    setActiveIndex(-1);
+    desktopInputRef.current?.focus();
+    mobileInputRef.current?.focus();
+  };
+
+  const showDropdown = (searchFocused || mobileSearchOpen) && searchTerm.trim().length > 0;
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -293,6 +583,36 @@ export default function Navbar({ variant = "landing" }) {
     } catch (error) {
       console.error("Logout failed:", error);
     }
+  };
+
+  // Shared dropdown content (used for both desktop dropdown and mobile panel)
+  const renderResultsPanel = () => {
+    if (!loaded) {
+      return <div style={S.searchStateRow}>Searching…</div>;
+    }
+    if (loadError) {
+      return <div style={S.searchStateRow}>Couldn't load search results. Try again.</div>;
+    }
+    if (results.length === 0) {
+      return <div style={S.searchStateRow}>No discussions match "{searchTerm.trim()}"</div>;
+    }
+    return (
+      <>
+        {results.map((post, i) => (
+          <SearchResultRow
+            key={post.id}
+            post={post}
+            term={searchTerm.trim()}
+            activeIndex={activeIndex}
+            index={i}
+            onSelect={goToPost}
+          />
+        ))}
+        <div style={S.searchFooterRow}>
+          {results.length >= 8 ? "Showing top 8 matches" : `${results.length} match${results.length === 1 ? "" : "es"}`}
+        </div>
+      </>
+    );
   };
 
   // ─── Landing Page Navbar ────────────────────────────────────────────────────
@@ -414,22 +734,87 @@ export default function Navbar({ variant = "landing" }) {
         {!isMobile && <span>DevConnect AI</span>}
       </Link>
 
-      {/* Search — hidden on very small screens, shown on md+ */}
+      {/* Search — full bar on md+, icon-triggered short bar on mobile */}
       {!isMobile && (
-        <div style={S.navSearch}>
+        <div style={S.navSearch} ref={searchWrapRef}>
           <span style={S.navSearchIcon}>🔍</span>
           <input
+            ref={desktopInputRef}
             type="text"
             placeholder="Search discussions, tags, error codes..."
             style={S.navSearchInput}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onKeyDown={handleSearchKeyDown}
+            role="combobox"
+            aria-expanded={showDropdown}
+            aria-autocomplete="list"
           />
+          {searchTerm && (
+            <button style={S.navSearchClear} onClick={clearSearch} aria-label="Clear search" type="button">
+              ✕
+            </button>
+          )}
+
+          {showDropdown && (
+            <div style={S.searchDropdown} role="listbox">
+              {renderResultsPanel()}
+            </div>
+          )}
         </div>
       )}
 
-      <div style={S.navActions}>
-        {/* Show search icon on mobile instead of input */}
+      <div style={S.navActions} ref={isMobile ? searchWrapRef : null}>
+        {/* Short, expandable search bar on mobile */}
         {isMobile && (
-          <button style={S.btnIcon} title="Search">🔍</button>
+          <>
+            <button
+              style={mobileSearchOpen ? S.btnIconActive : S.btnIcon}
+              title="Search"
+              type="button"
+              onClick={() => {
+                setMobileSearchOpen((open) => {
+                  const next = !open;
+                  if (next) setTimeout(() => mobileInputRef.current?.focus(), 0);
+                  return next;
+                });
+              }}
+            >
+              🔍
+            </button>
+
+            {mobileSearchOpen && (
+              <div style={S.mobileSearchBar}>
+                <div style={S.mobileSearchInputWrap}>
+                  <span style={{ ...S.navSearchIcon, left: 12 }}>🔍</span>
+                  <input
+                    ref={mobileInputRef}
+                    type="text"
+                    placeholder="Search discussions..."
+                    style={S.mobileSearchInput}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    role="combobox"
+                    aria-expanded={showDropdown}
+                    aria-autocomplete="list"
+                  />
+                  {searchTerm && (
+                    <button style={S.navSearchClear} onClick={clearSearch} aria-label="Clear search" type="button">
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {showDropdown && (
+                  <div style={{ ...S.searchDropdown, position: "static", marginTop: 8, width: "100%", minWidth: 0 }} role="listbox">
+                    {renderResultsPanel()}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {!isMobile && (

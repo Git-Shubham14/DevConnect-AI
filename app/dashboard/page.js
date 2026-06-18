@@ -2,7 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Navbar from "../../components/Navbar";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import CodeEditorModal from "../../components/CodeEditorModal";
@@ -282,15 +282,22 @@ const S = {
     borderBottom: "2px solid var(--accent-primary)",
     fontFamily: "inherit",
   },
-  discussionCard: {
+discussionCard: {
     backgroundColor: "var(--bg-secondary)",
-    border: "1px solid var(--border-color)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--border-color)",
     borderRadius: "var(--radius-lg)",
     padding: 16,
     boxShadow: "var(--shadow-sm)",
     display: "flex",
     flexDirection: "column",
     gap: 12,
+    transition: "box-shadow 0.4s ease, border-color 0.4s ease",
+  },
+  discussionCardHighlighted: {
+    boxShadow: "0 0 0 2px var(--accent-primary), var(--shadow-sm)",
+    borderColor: "var(--accent-primary)",
   },
   cardHeader: {
     display: "flex",
@@ -749,6 +756,11 @@ export default function Dashboard() {
   const [usersCache, setUsersCache] = useState({});
   const [profilePopup, setProfilePopup] = useState(null);
 
+  // Highlighted post (arrived here via a search result link like #post-abc123)
+  const [highlightedPostId, setHighlightedPostId] = useState(null);
+  const highlightTimeoutRef = useRef(null);
+  const scrolledRef = useRef(false);
+
   // Mobile state
   const [isMobile, setIsMobile] = useState(false);
   // Which mobile tab is active: "feed" | "trending" | "members" | "saved"
@@ -824,6 +836,57 @@ export default function Dashboard() {
     }, (err) => console.error(err));
     return () => unsubscribe();
   }, []);
+
+ // ── Scroll-to / highlight a post when arriving via a search result ────────
+
+// Helper: read hash, scroll to + highlight the post
+const scrollToHashPost = useCallback(() => {
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith("#post-")) return;
+  const targetId = hash.replace("#post-", "");
+  if (!posts.some((p) => p.id === targetId)) return;
+
+  setMobileTab("feed");
+  setTimeout(() => {
+    const el = document.getElementById(`post-${targetId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedPostId(targetId);
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+      highlightTimeoutRef.current = setTimeout(() => setHighlightedPostId(null), 2600);
+    }
+  }, 150);
+}, [posts]);
+
+// On initial load / posts-loaded: scroll if hash is present
+useEffect(() => {
+  if (scrolledRef.current) return;
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith("#post-")) return;
+  const targetId = hash.replace("#post-", "");
+  if (!posts.some((p) => p.id === targetId)) return;
+  scrolledRef.current = true;
+  scrollToHashPost();
+}, [posts, scrollToHashPost]);
+
+// Listen for hash changes (cross-page nav) AND custom event (same-page nav)
+useEffect(() => {
+  const handler = () => {
+    scrolledRef.current = false;
+    scrollToHashPost();
+  };
+  window.addEventListener("hashchange", handler);
+  window.addEventListener("dashboard-scroll-request", handler);
+  return () => {
+    window.removeEventListener("hashchange", handler);
+    window.removeEventListener("dashboard-scroll-request", handler);
+  };
+}, [scrollToHashPost]);
+
+// Cleanup highlight timeout on unmount
+useEffect(() => {
+  return () => { if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current); };
+}, []);
 
   const getLiveName = useCallback((uid, fallback) => usersCache[uid]?.displayName || fallback || "Anonymous User", [usersCache]);
   const getLivePhoto = useCallback((uid, fallback) => usersCache[uid]?.photoURL ?? fallback ?? "", [usersCache]);
@@ -1109,9 +1172,14 @@ export default function Dashboard() {
             const isSaved = savedPostIds.includes(post.id);
             const postPhoto = getLivePhoto(post.uid, post.photoURL);
             const postName = getLiveName(post.uid, post.displayName);
+            const isHighlighted = highlightedPostId === post.id;
 
             return (
-              <article style={S.discussionCard} key={post.id}>
+              <article
+                id={`post-${post.id}`}
+                style={{ ...S.discussionCard, ...(isHighlighted ? S.discussionCardHighlighted : {}) }}
+                key={post.id}
+              >
                 <div style={S.cardHeader}>
                   <div style={S.authorInfo}>
                     <UserAvatar
