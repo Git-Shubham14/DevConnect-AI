@@ -1,39 +1,38 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
-import { useResponsive } from "../hooks/useResponsive";
+import { useState, useEffect } from "react";
 
-// Shared style tokens
 const S = {
-  // Landing navbar 
+  // ── Landing navbar ──────────────────────────────────────────────────────────
   landingNav: {
     position: "fixed",
     top: 0,
     left: 0,
     width: "100%",
     zIndex: 100,
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "14px 5%",
-    background: "var(--bg-secondary)",
+    backgroundColor: "var(--bg-secondary)",
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
     borderBottom: "1px solid var(--border-color)",
     transition: "all var(--transition-fast)",
-    boxSizing: "border-box",
+  },
+  landingNavInner: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 8%",
   },
   logo: {
-    fontSize: "1.25rem",
+    fontSize: "1.4rem",
     fontWeight: 800,
     color: "var(--text-primary)",
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     textDecoration: "none",
     flexShrink: 0,
   },
@@ -49,26 +48,24 @@ const S = {
     fontWeight: 900,
     borderRadius: "var(--radius-sm)",
     boxShadow: "0 0 15px rgba(56, 189, 248, 0.3)",
-    flexShrink: 0,
   },
-  navLinks: {
+  desktopLinks: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 16,
   },
   navLink: {
     color: "var(--text-secondary)",
     textDecoration: "none",
     fontWeight: 500,
-    fontSize: "0.9rem",
+    fontSize: "0.95rem",
     transition: "color var(--transition-fast)",
-    padding: "6px 10px",
+    padding: "6px 12px",
     cursor: "pointer",
-    whiteSpace: "nowrap",
   },
   btnNavCta: {
     display: "inline-block",
-    padding: "9px 18px",
+    padding: "10px 20px",
     background: "linear-gradient(135deg, var(--accent-primary), var(--accent-ai))",
     color: "#000",
     fontWeight: 600,
@@ -77,120 +74,105 @@ const S = {
     textDecoration: "none",
     cursor: "pointer",
     border: "none",
-    fontSize: "0.9rem",
-    whiteSpace: "nowrap",
+    transition: "transform var(--transition-fast)",
   },
   themeToggleBtn: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     background: "var(--bg-primary)",
     border: "1.5px solid var(--border-color)",
     borderRadius: "var(--radius-md)",
     color: "var(--text-primary)",
     cursor: "pointer",
     transition: "all var(--transition-fast)",
-    fontSize: "1.1rem",
+    fontSize: "1.2rem",
     fontWeight: 600,
     flexShrink: 0,
   },
   hamburgerBtn: {
     display: "flex",
-    alignItems: "center",
+    flexDirection: "column",
     justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
     width: 40,
     height: 40,
-    background: "transparent",
+    background: "var(--bg-primary)",
     border: "1.5px solid var(--border-color)",
     borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
     cursor: "pointer",
-    fontSize: "1.2rem",
+    padding: "8px",
     flexShrink: 0,
-    transition: "all var(--transition-fast)",
   },
-
-  // Mobile Drawer 
-  mobileOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.5)",
-    zIndex: 150,
-    backdropFilter: "blur(4px)",
+  hamburgerLine: {
+    width: 18,
+    height: 2,
+    backgroundColor: "var(--text-primary)",
+    borderRadius: 2,
+    transition: "all 0.25s ease",
   },
-  mobileDrawer: {
-    position: "fixed",
-    top: 0,
-    right: 0,
-    height: "100%",
-    width: "min(85vw, 320px)",
-    background: "var(--bg-secondary)",
-    borderLeft: "1px solid var(--border-color)",
-    zIndex: 200,
+  // Mobile drawer
+  mobileDrawer: (open) => ({
+    overflow: "hidden",
+    maxHeight: open ? 600 : 0,
+    transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+    borderTop: open ? "1px solid var(--border-color)" : "none",
+  }),
+  mobileDrawerInner: {
     display: "flex",
     flexDirection: "column",
-    padding: "20px",
-    overflowY: "auto",
-    boxShadow: "-8px 0 32px rgba(0,0,0,0.3)",
+    padding: "16px 6%",
+    gap: 4,
+    backgroundColor: "var(--bg-secondary)",
   },
-  drawerHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottom: "1px solid var(--border-color)",
-  },
-  drawerCloseBtn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 36,
-    height: 36,
-    background: "var(--bg-primary)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "var(--radius-md)",
-    color: "var(--text-primary)",
-    cursor: "pointer",
-    fontSize: "1.1rem",
-  },
-  drawerNavLink: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "14px 16px",
+  mobileNavLink: {
     color: "var(--text-secondary)",
     textDecoration: "none",
     fontWeight: 500,
     fontSize: "1rem",
+    padding: "12px 16px",
     borderRadius: "var(--radius-md)",
-    transition: "all var(--transition-fast)",
-    marginBottom: 4,
+    cursor: "pointer",
+    transition: "background 0.15s",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    border: "none",
+    background: "transparent",
+    fontFamily: "inherit",
+    width: "100%",
+    textAlign: "left",
   },
-  drawerCta: {
-    display: "block",
-    textAlign: "center",
-    padding: "14px 20px",
+  mobileNavDivider: {
+    height: 1,
+    backgroundColor: "var(--border-color)",
+    margin: "8px 0",
+  },
+  mobileCta: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "12px 20px",
     background: "linear-gradient(135deg, var(--accent-primary), var(--accent-ai))",
     color: "#000",
     fontWeight: 700,
     borderRadius: "var(--radius-md)",
     textDecoration: "none",
-    marginTop: 16,
+    marginTop: 8,
     fontSize: "0.95rem",
-    border: "none",
-    cursor: "pointer",
-    width: "100%",
   },
-  drawerDivider: {
-    borderTop: "1px solid var(--border-color)",
-    marginTop: 16,
-    marginBottom: 16,
+  mobileThemeRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "12px 16px",
+    borderRadius: "var(--radius-md)",
   },
 
-  // Dashboard navbar
+  // ── Dashboard navbar ─────────────────────────────────────────────────────────
   navbar: {
     position: "sticky",
     top: 0,
@@ -199,7 +181,7 @@ const S = {
     alignItems: "center",
     justifyContent: "space-between",
     height: 64,
-    padding: "0 20px",
+    padding: "0 24px",
     backgroundColor: "var(--bg-secondary)",
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
@@ -209,28 +191,27 @@ const S = {
   navBrand: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     fontWeight: 700,
-    fontSize: "1.15rem",
+    fontSize: "1.1rem",
     color: "var(--text-primary)",
     textDecoration: "none",
     flexShrink: 0,
   },
   navSearch: {
     position: "relative",
-    width: "100%",
+    flex: 1,
     maxWidth: 420,
-    margin: "0 8px",
   },
   navSearchInput: {
     width: "100%",
-    padding: "8px 36px 8px 40px",
+    padding: "8px 16px 8px 40px",
     backgroundColor: "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
     borderRadius: "var(--radius-full)",
     color: "var(--text-primary)",
     outline: "none",
-    fontSize: "0.875rem",
+    fontSize: "0.9rem",
     transition: "all var(--transition-fast)",
     boxSizing: "border-box",
   },
@@ -242,35 +223,18 @@ const S = {
     color: "var(--text-muted)",
     pointerEvents: "none",
   },
-  navSearchClearBtn: {
-    position: "absolute",
-    right: 8,
-    top: "50%",
-    transform: "translateY(-50%)",
-    width: 22,
-    height: 22,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "transparent",
-    border: "none",
-    color: "var(--text-muted)",
-    cursor: "pointer",
-    fontSize: "0.85rem",
-    borderRadius: "var(--radius-full)",
-  },
   navActions: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     flexShrink: 0,
   },
   btnIcon: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     background: "transparent",
     border: "1.5px solid var(--border-color)",
     borderRadius: "var(--radius-md)",
@@ -278,6 +242,7 @@ const S = {
     cursor: "pointer",
     transition: "all var(--transition-fast)",
     fontSize: "1rem",
+    flexShrink: 0,
   },
   userProfileMenu: {
     display: "flex",
@@ -287,9 +252,8 @@ const S = {
     textDecoration: "none",
   },
   avatar: {
-    position: "relative",
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     background: "linear-gradient(135deg, var(--accent-primary), var(--accent-ai))",
     borderRadius: "var(--radius-full)",
     display: "flex",
@@ -297,51 +261,29 @@ const S = {
     justifyContent: "center",
     color: "#000",
     fontWeight: 700,
-    fontSize: "0.85rem",
+    fontSize: "0.9rem",
     border: "2px solid var(--border-color)",
     flexShrink: 0,
   },
 };
 
-export default function Navbar({ variant = "landing", searchValue = "", onSearchChange }) {
+export default function Navbar({ variant = "landing" }) {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const router = useRouter();
-  const { isMobile, isTablet } = useResponsive();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Local input value lets typing feel instant; we debounce before
-  // bubbling up to the parent so we don't re-filter the feed on every
-  // single keystroke for longer queries.
-  const [localSearch, setLocalSearch] = useState(searchValue);
-  const debounceRef = useRef(null);
-
-  // Keep local input in sync if the parent resets search (e.g. clear button
-  // triggered from elsewhere, or navigating away and back).
-  useEffect(() => {
-    setLocalSearch(searchValue);
-  }, [searchValue]);
-
-  const handleSearchInput = (e) => {
-    const value = e.target.value;
-    setLocalSearch(value);
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      onSearchChange?.(value);
-    }, 200); // short debounce — feels live, avoids thrashing on every keypress
-  };
-
-  const clearSearch = () => {
-    setLocalSearch("");
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    onSearchChange?.("");
-  };
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
   }, []);
 
   const handleLogout = async () => {
@@ -353,25 +295,20 @@ export default function Navbar({ variant = "landing", searchValue = "", onSearch
     }
   };
 
-  const closeDrawer = () => setDrawerOpen(false);
-
-  // Landing Page Navbar
+  // ─── Landing Page Navbar ────────────────────────────────────────────────────
   if (variant === "landing") {
-    const showHamburger = isMobile || isTablet;
-
     return (
-      <>
-        <nav style={S.landingNav}>
-          {/* Logo */}
+      <nav style={S.landingNav}>
+        <div style={S.landingNavInner}>
           <Link href="/" style={S.logo}>
             <div style={S.logoIcon}>🧠</div>
             {!isMobile && <span>DevConnect AI</span>}
-            {isMobile && <span style={{ fontSize: "1.1rem" }}>DevConnect</span>}
+            {isMobile && <span style={{ fontSize: "1.1rem" }}>DevConnect AI</span>}
           </Link>
 
-          {/* Desktop nav links */}
-          {!showHamburger && (
-            <div style={S.navLinks}>
+          {/* Desktop links */}
+          {!isMobile && (
+            <div style={S.desktopLinks}>
               <a href="#features" style={S.navLink}>AI Showcase</a>
               <a href="#workflow" style={S.navLink}>How It Works</a>
               <a href="#stats" style={S.navLink}>Dashboard</a>
@@ -382,7 +319,7 @@ export default function Navbar({ variant = "landing", searchValue = "", onSearch
                   <Link href="/dashboard" style={S.btnNavCta}>Open Community App</Link>
                   <Link
                     href="/profile"
-                    style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.9rem", textDecoration: "none" }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.95rem", textDecoration: "none" }}
                   >
                     {user.photoURL ? (
                       <img src={user.photoURL} alt={user.displayName} style={{ width: 28, height: 28, borderRadius: "var(--radius-full)", border: "2px solid var(--border-color)", objectFit: "cover" }} />
@@ -402,131 +339,97 @@ export default function Navbar({ variant = "landing", searchValue = "", onSearch
                 onClick={toggleTheme}
                 style={S.themeToggleBtn}
                 title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--accent-primary-alpha)"; e.currentTarget.style.borderColor = "var(--accent-primary)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--bg-primary)"; e.currentTarget.style.borderColor = "var(--border-color)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--accent-primary-alpha)"; e.currentTarget.style.borderColor = "var(--accent-primary)"; e.currentTarget.style.color = "var(--accent-primary)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--bg-primary)"; e.currentTarget.style.borderColor = "var(--border-color)"; e.currentTarget.style.color = "var(--text-primary)"; }}
               >
                 {isDarkMode ? "☀️" : "🌙"}
               </button>
             </div>
           )}
 
-          {/* Mobile/Tablet: theme + hamburger */}
-          {showHamburger && (
+          {/* Mobile right side */}
+          {isMobile && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button onClick={toggleTheme} style={S.themeToggleBtn} title="Toggle theme">
                 {isDarkMode ? "☀️" : "🌙"}
               </button>
-              <button onClick={() => setDrawerOpen(true)} style={S.hamburgerBtn} aria-label="Open menu">
-                ☰
+              <button
+                style={S.hamburgerBtn}
+                onClick={() => setMobileOpen((o) => !o)}
+                aria-label="Toggle menu"
+              >
+                <span style={{ ...S.hamburgerLine, transform: mobileOpen ? "translateY(7px) rotate(45deg)" : "none" }} />
+                <span style={{ ...S.hamburgerLine, opacity: mobileOpen ? 0 : 1 }} />
+                <span style={{ ...S.hamburgerLine, transform: mobileOpen ? "translateY(-7px) rotate(-45deg)" : "none" }} />
               </button>
             </div>
           )}
-        </nav>
+        </div>
 
-        {/* Mobile Drawer */}
-        {drawerOpen && (
-          <>
-            <div style={S.mobileOverlay} onClick={closeDrawer} />
-            <div style={S.mobileDrawer} className="mobile-nav-drawer">
-              {/* Drawer header */}
-              <div style={S.drawerHeader}>
-                <Link href="/" style={{ ...S.logo, fontSize: "1.1rem" }} onClick={closeDrawer}>
-                  <div style={S.logoIcon}>🧠</div>
-                  <span>DevConnect AI</span>
-                </Link>
-                <button onClick={closeDrawer} style={S.drawerCloseBtn} aria-label="Close menu">✕</button>
-              </div>
-
-              {/* Nav links */}
-              <a href="#features" style={S.drawerNavLink} onClick={closeDrawer}>
+        {/* Mobile drawer */}
+        {isMobile && (
+          <div style={S.mobileDrawer(mobileOpen)}>
+            <div style={S.mobileDrawerInner}>
+              <a href="#features" style={S.mobileNavLink} onClick={() => setMobileOpen(false)}>
                 <span>✨</span> AI Showcase
               </a>
-              <a href="#workflow" style={S.drawerNavLink} onClick={closeDrawer}>
-                <span>⚡</span> How It Works
+              <a href="#workflow" style={S.mobileNavLink} onClick={() => setMobileOpen(false)}>
+                <span>⚙️</span> How It Works
               </a>
-              <a href="#stats" style={S.drawerNavLink} onClick={closeDrawer}>
+              <a href="#stats" style={S.mobileNavLink} onClick={() => setMobileOpen(false)}>
                 <span>📊</span> Dashboard
               </a>
-              <a href="#waitlist" style={S.drawerNavLink} onClick={closeDrawer}>
-                <span>🚀</span> Waitlist
+              <a href="#waitlist" style={S.mobileNavLink} onClick={() => setMobileOpen(false)}>
+                <span>📬</span> Waitlist
               </a>
 
-              <div style={S.drawerDivider} />
+              <div style={S.mobileNavDivider} />
 
               {user ? (
                 <>
-                  <Link href="/profile" style={{ ...S.drawerNavLink, gap: 12 }} onClick={closeDrawer}>
-                    <div style={{ width: 32, height: 32, borderRadius: "var(--radius-full)", background: "linear-gradient(135deg, var(--accent-primary), var(--accent-ai))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "#000" }}>
-                      {user.displayName?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                    <span>{user.displayName || user.email}</span>
+                  <Link href="/profile" style={{ ...S.mobileNavLink, textDecoration: "none" }} onClick={() => setMobileOpen(false)}>
+                    <span>👤</span> {user.displayName?.split(" ")[0] || "Profile"}
                   </Link>
-                  <Link href="/dashboard" style={S.drawerCta} onClick={closeDrawer}>
-                    Open Community App
+                  <Link href="/dashboard" style={S.mobileCta} onClick={() => setMobileOpen(false)}>
+                    Open Community App →
                   </Link>
-                  <button onClick={() => { handleLogout(); closeDrawer(); }} style={{ ...S.drawerCta, background: "rgba(239,68,68,0.1)", color: "#ef4444", marginTop: 8 }}>
-                    Sign Out
-                  </button>
                 </>
               ) : (
-                <>
-                  <Link href="/login" style={{ ...S.drawerNavLink }} onClick={closeDrawer}>
-                    <span>🔐</span> Sign In
-                  </Link>
-                  <Link href="/signup" style={S.drawerCta} onClick={closeDrawer}>
-                    Get Started Free
-                  </Link>
-                </>
+                <Link href="/login" style={S.mobileCta} onClick={() => setMobileOpen(false)}>
+                  Sign In →
+                </Link>
               )}
             </div>
-          </>
+          </div>
         )}
-      </>
+      </nav>
     );
   }
 
-  // Dashboard / App Navbar
+  // ─── Dashboard / App Navbar ─────────────────────────────────────────────────
   return (
     <header style={S.navbar}>
       <Link href="/" style={S.navBrand} title="Back to Home">
-        <span>🧠</span>
+        <span style={{ fontSize: isMobile ? "1.3rem" : "1.1rem" }}>🧠</span>
         {!isMobile && <span>DevConnect AI</span>}
       </Link>
 
-      {/* Search bar — hidden on mobile (mobile uses the icon button below) */}
+      {/* Search — hidden on very small screens, shown on md+ */}
       {!isMobile && (
         <div style={S.navSearch}>
           <span style={S.navSearchIcon}>🔍</span>
           <input
             type="text"
-            placeholder={isTablet ? "Search..." : "Search discussions, tags, error codes..."}
+            placeholder="Search discussions, tags, error codes..."
             style={S.navSearchInput}
-            value={localSearch}
-            onChange={handleSearchInput}
-            aria-label="Search discussions, tags, and authors"
           />
-          {localSearch && (
-            <button
-              type="button"
-              onClick={clearSearch}
-              style={S.navSearchClearBtn}
-              title="Clear search"
-              aria-label="Clear search"
-            >
-              ✕
-            </button>
-          )}
         </div>
       )}
 
       <div style={S.navActions}>
-        {/* Search icon on mobile — expands into an inline input */}
+        {/* Show search icon on mobile instead of input */}
         {isMobile && (
-          <MobileSearchToggle
-            value={localSearch}
-            onChange={handleSearchInput}
-            onClear={clearSearch}
-          />
+          <button style={S.btnIcon} title="Search">🔍</button>
         )}
 
         {!isMobile && (
@@ -538,8 +441,8 @@ export default function Navbar({ variant = "landing", searchValue = "", onSearch
           onClick={toggleTheme}
           style={S.btnIcon}
           title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--accent-primary-alpha)"; e.currentTarget.style.borderColor = "var(--accent-primary)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.borderColor = "var(--border-color)"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--accent-primary-alpha)"; e.currentTarget.style.borderColor = "var(--accent-primary)"; e.currentTarget.style.color = "var(--accent-primary)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.borderColor = "var(--border-color)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
         >
           {isDarkMode ? "☀️" : "🌙"}
         </button>
@@ -548,91 +451,28 @@ export default function Navbar({ variant = "landing", searchValue = "", onSearch
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Link href="/profile" style={S.userProfileMenu} title="View Profile">
               {user.photoURL ? (
-                <img src={user.photoURL} alt={user.displayName} style={{ width: 34, height: 34, borderRadius: "var(--radius-full)", border: "2px solid var(--border-color)", objectFit: "cover" }} />
+                <img src={user.photoURL} alt={user.displayName} style={{ width: 36, height: 36, borderRadius: "var(--radius-full)", border: "2px solid var(--border-color)", objectFit: "cover" }} />
               ) : (
-                <div style={S.avatar}>
-                  {user.displayName?.charAt(0).toUpperCase() || "U"}
-                </div>
+                <div style={S.avatar}>{user.displayName?.charAt(0).toUpperCase() || "U"}</div>
               )}
               {!isMobile && (
-                <span style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: "0.875rem" }}>
+                <span style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: "0.9rem" }}>
                   {user.displayName?.split(" ")[0] || "Profile"}
                 </span>
               )}
             </Link>
             {!isMobile && (
-              <button onClick={handleLogout} style={{ ...S.btnIcon, fontSize: "1rem" }} title="Logout">🚪</button>
+              <button onClick={handleLogout} style={{ ...S.btnIcon, fontSize: "1rem" }} title="Logout">
+                🚪
+              </button>
             )}
           </div>
         ) : (
-          <Link
-            href="/login"
-            style={{ padding: isMobile ? "6px 12px" : "8px 16px", background: "var(--accent-primary)", color: "#000", borderRadius: "var(--radius-md)", fontWeight: 600, fontSize: "0.875rem", textDecoration: "none", cursor: "pointer", border: "none", whiteSpace: "nowrap" }}
-          >
+          <Link href="/login" style={{ padding: "8px 16px", background: "var(--accent-primary)", color: "#000", borderRadius: "var(--radius-md)", fontWeight: 600, fontSize: "0.9rem", textDecoration: "none", border: "none" }}>
             {isMobile ? "In" : "Sign In"}
           </Link>
         )}
       </div>
     </header>
-  );
-}
-
-// Mobile: tapping the icon expands an inline search field instead of
-// navigating anywhere, so search still works on small screens.
-function MobileSearchToggle({ value, onChange, onClear }) {
-  const [open, setOpen] = useState(false);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
-
-  if (!open) {
-    return (
-      <button style={S.btnIcon} title="Search" onClick={() => setOpen(true)}>
-        🔍
-      </button>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 64,
-        background: "var(--bg-secondary)",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "0 12px",
-        zIndex: 60,
-        borderBottom: "1px solid var(--border-color)",
-      }}
-    >
-      <span style={{ color: "var(--text-muted)" }}>🔍</span>
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={onChange}
-        placeholder="Search discussions, tags..."
-        style={{ ...S.navSearchInput, padding: "8px 10px", flex: 1 }}
-        autoFocus
-      />
-      <button
-        type="button"
-        style={S.btnIcon}
-        onClick={() => {
-          onClear();
-          setOpen(false);
-        }}
-        aria-label="Close search"
-      >
-        ✕
-      </button>
-    </div>
   );
 }
