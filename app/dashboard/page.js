@@ -12,6 +12,7 @@ import FeatureTour from "../../components/FeatureTour";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebase";
 import AIDraftAssistant from "../../components/AIDraftAssistant";
+import { createNotification } from "../../lib/notifications";
 import {
   collection,
   addDoc,
@@ -1006,7 +1007,7 @@ export default function Dashboard() {
     });
   }, [usersCache]);
 
-  // Follow / Unfollow handler
+  // Follow / Unfollow handler — notifies the target user when followed (not on unfollow)
   const handleFollowToggle = useCallback(async (targetUid, isCurrentlyFollowing) => {
     if (!user || !targetUid || targetUid === user.uid) return;
     try {
@@ -1016,6 +1017,10 @@ export default function Dashboard() {
       await setDoc(doc(db, "users", targetUid), {
         followers: isCurrentlyFollowing ? arrayRemove(user.uid) : arrayUnion(user.uid),
       }, { merge: true });
+
+      if (!isCurrentlyFollowing) {
+        await createNotification({ toUid: targetUid, fromUser: user, type: "follow" });
+      }
     } catch (err) {
       console.error("Follow toggle failed:", err);
       setError("Failed to update follow status.");
@@ -1085,6 +1090,7 @@ export default function Dashboard() {
   const handleInsertCode = (codeBlock) => { setContent((prev) => prev + (prev ? "\n\n" : "") + codeBlock); setShowCodeEditor(false); };
   const toggleTag = (tag) => setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
 
+  // Like / unlike — notifies the post owner only when a like is newly added
   const handleToggleLike = async (post) => {
     if (!user) return;
     const liked = (post.likedBy || []).includes(user.uid);
@@ -1093,6 +1099,15 @@ export default function Dashboard() {
         likedBy: liked ? arrayRemove(user.uid) : arrayUnion(user.uid),
         likes: (post.likedBy || []).length + (liked ? -1 : 1),
       });
+
+      if (!liked) {
+        await createNotification({
+          toUid: post.uid,
+          fromUser: user,
+          type: "like",
+          postId: post.id,
+        });
+      }
     } catch (err) { console.error(err); setError("Failed to update like."); }
   };
 
@@ -1120,19 +1135,46 @@ export default function Dashboard() {
 
   const toggleComments = (postId) => { setOpenCommentsFor((prev) => (prev === postId ? null : postId)); setCommentDraft(""); setEditingComment(null); };
 
+  // Adding a comment — notifies the post owner
   const handleAddComment = async (post) => {
     if (!commentDraft.trim() || !user) return;
-    const newComment = { uid: user.uid, displayName: user.displayName || user.email || "Anonymous User", photoURL: user.photoURL || "", content: commentDraft.trim(), createdAt: Date.now(), edited: false };
-    try { await updateDoc(doc(db, "posts", post.id), { comments: arrayUnion(newComment) }); setCommentDraft(""); }
+    const trimmed = commentDraft.trim();
+    const newComment = { uid: user.uid, displayName: user.displayName || user.email || "Anonymous User", photoURL: user.photoURL || "", content: trimmed, createdAt: Date.now(), edited: false };
+    try {
+      await updateDoc(doc(db, "posts", post.id), { comments: arrayUnion(newComment) });
+      setCommentDraft("");
+
+      await createNotification({
+        toUid: post.uid,
+        fromUser: user,
+        type: "comment",
+        postId: post.id,
+        preview: trimmed,
+      });
+    }
     catch (err) { console.error(err); setError("Failed to add comment."); }
   };
 
   const startEditComment = (comment) => { setEditingComment({ postId: comment._postId, createdAt: comment.createdAt }); setEditingCommentDraft(comment.content); };
   const cancelEditComment = () => { setEditingComment(null); setEditingCommentDraft(""); };
+
+  // Editing a comment — notifies the post owner that the comment changed
   const handleSaveCommentEdit = async (post, oldComment) => {
     if (!editingCommentDraft.trim()) return;
-    const updatedComments = (post.comments || []).map((c) => c.createdAt === oldComment.createdAt && c.uid === oldComment.uid ? { ...c, content: editingCommentDraft.trim(), edited: true } : c);
-    try { await updateDoc(doc(db, "posts", post.id), { comments: updatedComments }); setEditingComment(null); setEditingCommentDraft(""); }
+    const trimmed = editingCommentDraft.trim();
+    const updatedComments = (post.comments || []).map((c) => c.createdAt === oldComment.createdAt && c.uid === oldComment.uid ? { ...c, content: trimmed, edited: true } : c);
+    try {
+      await updateDoc(doc(db, "posts", post.id), { comments: updatedComments });
+      setEditingComment(null); setEditingCommentDraft("");
+
+      await createNotification({
+        toUid: post.uid,
+        fromUser: user,
+        type: "comment_edit",
+        postId: post.id,
+        preview: trimmed,
+      });
+    }
     catch (err) { console.error(err); setError("Failed to edit comment."); }
   };
   const handleDeleteComment = async (post, comment) => {
