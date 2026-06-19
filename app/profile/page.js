@@ -580,11 +580,11 @@ export default function Profile() {
     if (!file.type.startsWith("image/")) { setPhotoMsg({ type: "error", text: "Please select an image file." }); return; }
     if (file.size > 5 * 1024 * 1024) { setPhotoMsg({ type: "error", text: "Image must be under 5MB." }); return; }
     setPhotoUploading(true); setPhotoMsg(null);
-    try {
+    try { 
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-      formData.append("public_id", `avatars/${user.uid}`);
+      formData.append("public_id", `avatars/${user.uid}_${Date.now()}`);
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
         { method: "POST", body: formData }
@@ -596,7 +596,10 @@ export default function Profile() {
       await setDoc(doc(db, "users", user.uid), { photoURL }, { merge: true });
       setCurrentPhotoURL(photoURL);
       setPhotoMsg({ type: "success", text: "Photo updated!" });
-    } catch { setPhotoMsg({ type: "error", text: "Upload failed. Try again." }); }
+    } catch (err) { 
+  
+  setPhotoMsg({ type: "error", text: "Upload failed. Try again." }); 
+}
     finally { setPhotoUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
