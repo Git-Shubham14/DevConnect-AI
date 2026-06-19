@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../../context/ThemeContext";
 import Link from "next/link";
-import { Sparkles, Mail, KeyRound, Sun, Moon } from "lucide-react";
+import { Sparkles, Mail, KeyRound, Sun, Moon, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const { loginWithGoogle, loginWithGithub, loginWithEmail, user } = useAuth();
@@ -17,6 +17,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const check = () => setIsNarrow(window.innerWidth < 480);
@@ -373,16 +374,36 @@ export default function Login() {
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
-                style={inputStyle}
+                style={{ ...inputStyle, paddingRight: "2.5rem" }}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onFocus={(e) => { e.target.style.borderColor = "var(--border-focus)"; e.target.style.background = "var(--bg-primary)"; }}
                 onBlur={(e) => { e.target.style.borderColor = "var(--border-color)"; e.target.style.background = "var(--bg-tertiary)"; }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                style={{
+                  position: "absolute",
+                  right: "0.75rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: 0,
+                }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             <div style={forgotStyle}>
