@@ -54,6 +54,15 @@ When adding or modifying UI, reference the existing `S` style objects in each co
 - No `next.config.js` or `next.config.mjs` exists.
 - Branch naming: `feat/`, `fix/`, `docs/` prefixes. Commit convention: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `chore:`.
 
+## Installed Skills
+
+| Skill | Use Case |
+|---|---|
+| `wcag-audit-patterns` | Audit pages for WCAG 2.2 accessibility violations, fix issues, meet ADA/Section 508 compliance |
+| `core-web-vitals` | Diagnose and fix LCP, INP, CLS — improves page experience and Google Search ranking |
+| `seo-audit` | Full technical SEO audit: meta tags, crawl errors, indexing, traffic drops, on-page issues |
+| `conventional-commit` | Generate standardized commit messages following the Conventional Commits spec |
+
 ## Gotchas
 
 - **No `.env.example` file** exists despite README referencing it. Create `.env.local` manually with the required vars.
