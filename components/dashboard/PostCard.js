@@ -2,7 +2,11 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useState, useEffect } from "react";
 import UserAvatar from "./UserAvatar";
+
+const DEFAULT_EMOJIS = ["👍", "✅", "💡", "❤️"];
+const EXTRA_EMOJIS   = ["🔥", "😂", "😮", "🎉", "🙌", "💯", "🚀", "😢", "😡", "👀", "🤔", "⭐"];
 
 const S = {
   discussionCard: {
@@ -205,6 +209,82 @@ const S = {
     cursor: "pointer",
     fontFamily: "inherit",
   },
+  reactionBtn: (hasReacted) => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 3,
+    padding: "2px 8px",
+    borderRadius: 999,
+    border: hasReacted ? "1px solid var(--accent-primary)" : "1px solid var(--border-color)",
+    background: hasReacted ? "rgba(99,102,241,0.12)" : "transparent",
+    color: hasReacted ? "var(--accent-primary)" : "var(--text-muted)",
+    fontSize: "0.78rem",
+    fontWeight: hasReacted ? 600 : 400,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "all 0.15s ease",
+    lineHeight: 1.4,
+  }),
+  pickerToggleBtn: (isOpen) => ({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "2px 8px",
+    height: 22,
+    borderRadius: 999,
+    border: "1px solid var(--border-color)",
+    background: isOpen ? "var(--accent-primary-alpha)" : "transparent",
+    color: isOpen ? "var(--accent-primary)" : "var(--text-muted)",
+    fontSize: "0.72rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "all 0.15s",
+    whiteSpace: "nowrap",
+    gap: 3,
+  }),
+  pickerGrid: {
+    position: "absolute",
+    bottom: "calc(100% + 8px)",
+    left: 0,
+    zIndex: 50,
+    display: "grid",
+    gridTemplateColumns: "repeat(6, 1fr)",
+    gap: 4,
+    padding: 10,
+    backgroundColor: "var(--bg-secondary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: "var(--radius-md)",
+    boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+    minWidth: 210,
+  },
+  pickerEmojiBtn: (hasReacted) => ({
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: "var(--radius-sm)",
+    border: "none",
+    background: hasReacted ? "var(--accent-primary-alpha)" : "transparent",
+    fontSize: "1.1rem",
+    cursor: "pointer",
+    transition: "background 0.12s",
+  }),
+  pickerBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    fontSize: "0.52rem",
+    fontWeight: 700,
+    color: "var(--accent-primary)",
+    backgroundColor: "var(--bg-secondary)",
+    borderRadius: 999,
+    padding: "0 2px",
+    lineHeight: 1.4,
+    pointerEvents: "none",
+  },
 };
 
 export default function PostCard({
@@ -238,19 +318,30 @@ export default function PostCard({
   onCancelEditComment,
   onSaveCommentEdit,
   onDeleteComment,
+  onToggleCommentReaction,
 }) {
+  // tracks which comment's extra-emoji picker is open (keyed by "uid-createdAt")
+  const [openPickerFor, setOpenPickerFor] = useState(null);
+
+  // close picker when clicking anywhere outside
+  useEffect(() => {
+    if (!openPickerFor) return;
+    const close = () => setOpenPickerFor(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [openPickerFor]);
+
   const postPhoto = getLivePhoto(post.uid, post.photoURL);
-  const postName = getLiveName(post.uid, post.displayName);
-  const type = post.postType || "discussion";
+  const postName  = getLiveName(post.uid, post.displayName);
+  const type      = post.postType || "discussion";
   const typeLabel = type === "question" ? "Question" : type === "collaboration" ? "Collaborate" : "Discussion";
 
   return (
     <article
       id={`post-${post.id}`}
       style={{ ...S.discussionCard, ...(isHighlighted ? S.discussionCardHighlighted : {}) }}
-      key={post.id}
     >
-      {/* Card Header */}
+      {/* ── Card Header ── */}
       <div style={S.cardHeader}>
         <div style={S.authorInfo}>
           <UserAvatar
@@ -281,7 +372,7 @@ export default function PostCard({
         </div>
       </div>
 
-      {/* Post Body or Edit Mode */}
+      {/* ── Post Body / Edit Mode ── */}
       {editingId === post.id ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <textarea
@@ -319,14 +410,14 @@ export default function PostCard({
         </div>
       )}
 
-      {/* Tags */}
+      {/* ── Tags ── */}
       <div style={S.postTags}>
         {post.tags && post.tags.length > 0
           ? post.tags.map((tag) => <a href="#" style={S.postTag} key={tag}>{tag}</a>)
           : <a href="#" style={S.postTag}>#community</a>}
       </div>
 
-      {/* Post Actions */}
+      {/* ── Post Actions ── */}
       <div id={postIndex === 0 ? "post-actions-0" : undefined} style={S.postActions}>
         <div style={S.postActionsGroup}>
           <button style={S.btnAction} onClick={() => onToggleLike(post)}>
@@ -350,18 +441,26 @@ export default function PostCard({
         )}
       </div>
 
-      {/* Comments Section */}
+      {/* ── Comments Section ── */}
       {openCommentsFor === post.id && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border-color)", paddingTop: 12 }}>
           {(post.comments || []).length === 0
             ? <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", margin: 0 }}>No comments yet. Be the first!</p>
             : (post.comments || []).slice().sort((a, b) => a.createdAt - b.createdAt).map((c) => {
               const isEditingThis = editingComment?.postId === post.id && editingComment?.createdAt === c.createdAt;
-              const isOwner = user?.uid === c.uid;
-              const commentPhoto = getLivePhoto(c.uid, c.photoURL);
-              const commentName = getLiveName(c.uid, c.displayName);
+              const isOwner       = user?.uid === c.uid;
+              const commentPhoto  = getLivePhoto(c.uid, c.photoURL);
+              const commentName   = getLiveName(c.uid, c.displayName);
+              const commentKey    = `${c.uid}-${c.createdAt}`;
+              const isPickerOpen  = openPickerFor === commentKey;
+
+              // extra emojis that already have reactions (show them inline too)
+              const activeExtra = Object.keys(c.reactions || {})
+                .filter((e) => !DEFAULT_EMOJIS.includes(e) && (c.reactions[e]?.length || 0) > 0);
+
               return (
-                <div key={`${c.uid}-${c.createdAt}`} style={S.commentItem}>
+                <div key={commentKey} style={S.commentItem}>
+                  {/* Comment header */}
                   <div style={S.commentHeader}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <UserAvatar
@@ -389,6 +488,8 @@ export default function PostCard({
                       )}
                     </div>
                   </div>
+
+                  {/* Edit mode or body + reactions */}
                   {isEditingThis ? (
                     <>
                       <textarea
@@ -403,12 +504,79 @@ export default function PostCard({
                       </div>
                     </>
                   ) : (
-                    <p style={{ ...S.commentBody, margin: 0 }}>{c.content}</p>
+                    <>
+                      <p style={{ ...S.commentBody, margin: 0 }}>{c.content}</p>
+
+                      {/* ── Reaction Bar ── */}
+                      <div
+                        style={{ position: "relative", marginTop: 6 }}
+                        // stop window click from immediately closing the picker we just opened
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+
+                          {/* Default 4 + any active extra emojis inline */}
+                          {[...DEFAULT_EMOJIS, ...activeExtra].map((emoji) => {
+                            const reactors   = c.reactions?.[emoji] || [];
+                            const hasReacted = reactors.includes(user?.uid);
+                            return (
+                              <button
+                                key={emoji}
+                                style={S.reactionBtn(hasReacted)}
+                                onClick={() => onToggleCommentReaction?.(post, c, emoji)}
+                                title={reactors.length > 0 ? `${reactors.length} reaction${reactors.length !== 1 ? "s" : ""}` : "React"}
+                              >
+                                <span>{emoji}</span>
+                                {reactors.length > 0 && (
+                                  <span style={{ fontSize: "0.72rem", minWidth: 10 }}>{reactors.length}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+
+                          {/* Picker toggle button */}
+                          <button
+                            style={S.pickerToggleBtn(isPickerOpen)}
+                            onClick={() => setOpenPickerFor(isPickerOpen ? null : commentKey)}
+                            title="More reactions"
+                          >
+                            {isPickerOpen ? "✕ Close" : "+ 😊"}
+                          </button>
+                        </div>
+
+                        {/* ── Expanded emoji picker grid ── */}
+                        {isPickerOpen && (
+                          <div style={S.pickerGrid}>
+                            {EXTRA_EMOJIS.map((emoji) => {
+                              const reactors   = c.reactions?.[emoji] || [];
+                              const hasReacted = reactors.includes(user?.uid);
+                              return (
+                                <button
+                                  key={emoji}
+                                  style={S.pickerEmojiBtn(hasReacted)}
+                                  title={`${emoji}${reactors.length > 0 ? ` · ${reactors.length}` : ""}`}
+                                  onClick={() => {
+                                    onToggleCommentReaction?.(post, c, emoji);
+                                    setOpenPickerFor(null); // close after picking
+                                  }}
+                                >
+                                  {emoji}
+                                  {reactors.length > 0 && (
+                                    <span style={S.pickerBadge}>{reactors.length}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               );
             })}
 
+          {/* Add comment input */}
           <div style={{ display: "flex", gap: 8 }}>
             <input
               style={{

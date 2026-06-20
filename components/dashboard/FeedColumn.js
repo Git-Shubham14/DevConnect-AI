@@ -102,6 +102,7 @@ export default function FeedColumn({
   onCancelEditComment,
   onSaveCommentEdit,
   onDeleteComment,
+  onToggleCommentReaction, // ← new prop
   // Composer props
   content,
   setContent,
@@ -126,6 +127,7 @@ export default function FeedColumn({
     onDeletePost, onStartEdit, onCancelEdit, onSaveEdit, onToggleComments,
     onAddComment, onStartEditComment, onCancelEditComment, onSaveCommentEdit,
     onDeleteComment,
+    onToggleCommentReaction, // ← forwarded
   };
 
   return (
